@@ -91,7 +91,7 @@ function printHelp() {
     `Options:\n` +
     `  -s, --symbol <symbol>     Trading pair to poll (default: ${DEFAULT_SYMBOL})\n` +
     `  -i, --interval <seconds>  Polling interval in seconds (default: ${DEFAULT_INTERVAL_MS / 1000})\n` +
-    `  -o, --output <dir>        Directory for raw JSON payloads (default: data/raw)\n` +
+    `  -o, --output <dir>        Directory for NDJSON payloads (default: data/raw)\n` +
     `  -n, --samples <count>     Number of samples to collect before exiting (default: unlimited)\n` +
     `  -h, --help                Show this help message`);
 }
@@ -102,18 +102,25 @@ function buildRequestUrl(symbol) {
   return url.toString();
 }
 
-function timestampFileName(symbol) {
-  const now = new Date().toISOString().replace(/[:.]/g, '-');
-  const uniqueSuffix = process.hrtime.bigint().toString();
-  return `${symbol}-${now}-${uniqueSuffix}.json`;
-}
-
 async function ensureDirectory(dir) {
   await fsp.mkdir(dir, { recursive: true });
 }
 
-async function writePayload(filePath, payload) {
-  await fsp.writeFile(filePath, payload);
+function formatHourlyFilePath(symbol, outputDir, now = new Date()) {
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(now.getUTCDate()).padStart(2, '0');
+  const hour = String(now.getUTCHours()).padStart(2, '0');
+  const fileName = `${symbol}-${year}-${month}-${day}-${hour}.ndjson`;
+  return path.join(outputDir, fileName);
+}
+
+async function appendPayload(filePath, payload) {
+  let content = payload;
+  if (!content.endsWith('\n')) {
+    content += '\n';
+  }
+  await fsp.appendFile(filePath, content, 'utf8');
 }
 
 async function pollOnce(options, activeControllers) {
@@ -136,10 +143,10 @@ async function pollOnce(options, activeControllers) {
     }
 
     const payload = await response.text();
-    const fileName = timestampFileName(symbol);
-    const filePath = path.join(outputDir, fileName);
-    await writePayload(filePath, payload);
-    console.log(`[${new Date().toISOString()}] Stored ${path.relative(process.cwd(), filePath)}`);
+    const now = new Date();
+    const filePath = formatHourlyFilePath(symbol, outputDir, now);
+    await appendPayload(filePath, payload);
+    console.log(`[${now.toISOString()}] Appended ${path.relative(process.cwd(), filePath)}`);
   } catch (error) {
     if (error.name === 'AbortError') {
       console.log('Fetch aborted');

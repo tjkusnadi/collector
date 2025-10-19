@@ -15,10 +15,11 @@ type Client struct {
 	httpClient *http.Client
 	endpoint   string
 	outDir     string
+	symbol     string
 }
 
 // NewClient creates a collector client.
-func NewClient(httpClient *http.Client, endpoint, outDir string) *Client {
+func NewClient(httpClient *http.Client, endpoint, symbol, outDir string) *Client {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
@@ -26,10 +27,11 @@ func NewClient(httpClient *http.Client, endpoint, outDir string) *Client {
 		httpClient: httpClient,
 		endpoint:   endpoint,
 		outDir:     outDir,
+		symbol:     symbol,
 	}
 }
 
-// FetchAndStore downloads the payload and writes the raw response body to disk.
+// FetchAndStore downloads the payload and appends the raw response body to disk.
 func (c *Client) FetchAndStore(ctx context.Context) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.endpoint, nil)
 	if err != nil {
@@ -56,11 +58,22 @@ func (c *Client) FetchAndStore(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("ensure output dir: %w", err)
 	}
 
-	filename := fmt.Sprintf("binance_%s.json", time.Now().UTC().Format("20060102T150405.000000000Z"))
+	now := time.Now().UTC()
+	filename := fmt.Sprintf("%s-%s.ndjson", c.symbol, now.Format("2006-01-02-15"))
 	path := filepath.Join(c.outDir, filename)
 
-	if err := os.WriteFile(path, data, 0o644); err != nil {
-		return "", fmt.Errorf("write payload: %w", err)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		return "", fmt.Errorf("open payload file: %w", err)
+	}
+	defer file.Close()
+
+	if len(data) == 0 || data[len(data)-1] != '\n' {
+		data = append(data, '\n')
+	}
+
+	if _, err := file.Write(data); err != nil {
+		return "", fmt.Errorf("append payload: %w", err)
 	}
 
 	return path, nil

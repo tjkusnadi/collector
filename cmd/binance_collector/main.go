@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -25,18 +26,19 @@ func main() {
 	)
 	flag.Parse()
 
-	endpoint := fmt.Sprintf(defaultEndpointTemplate, *symbol)
+	sym := strings.ToUpper(*symbol)
+	endpoint := fmt.Sprintf(defaultEndpointTemplate, sym)
 	interval := time.Duration(*intervalSec) * time.Second
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	log.Printf("starting binance collector: symbol=%s interval=%s output=%s", *symbol, interval, *outDir)
+	log.Printf("starting binance collector: symbol=%s interval=%s output=%s", sym, interval, *outDir)
 
-	client := collector.NewClient(&http.Client{Timeout: 10 * time.Second}, endpoint, *outDir)
+	client := collector.NewClient(&http.Client{Timeout: 10 * time.Second}, endpoint, sym, *outDir)
 
 	if err := client.Run(ctx, interval, func(path string) {
-		log.Printf("stored payload at %s", path)
+		log.Printf("appended payload to %s", path)
 	}); err != nil {
 		if ctx.Err() != nil {
 			log.Printf("collector stopped: %v", ctx.Err())

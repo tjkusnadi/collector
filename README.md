@@ -1,6 +1,6 @@
 # collector
 
-This repository contains small Go and Node.js collectors that poll Binance for product data every second and store the raw JSON responses on disk.
+This repository contains small Go and Node.js collectors that poll Binance for product data every second and append the raw JSON responses to hourly [NDJSON](https://github.com/ndjson/ndjson-spec) files on disk.
 
 ## Prerequisites
 
@@ -35,6 +35,6 @@ $ node js/bin/binance_collector.js --symbol ETHUSDT --interval 2 --output ./cust
 $ node js/bin/binance_collector.js --samples 5
 ```
 
-Raw payloads are written to the `data/raw` directory by default. File names are timestamped in UTC with a unique suffix so multiple samples per second are retained.
+Raw payloads are written to the `data/raw` directory by default. Each trading pair appends to an hourly file named `${SYMBOL}-YYYY-MM-DD-HH.ndjson` (timestamps are in UTC), ensuring every sample is preserved in newline-delimited JSON format.
 
 Press `Ctrl+C` to stop either collector gracefully.
