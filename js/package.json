@@ -1,0 +1,14 @@
+{
+  "name": "binance-collector-js",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Node.js script that polls Binance for product data",
+  "main": "bin/binance_collector.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node bin/binance_collector.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
