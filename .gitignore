@@ -1,0 +1,6 @@
+# Binaries
+/binance_collector
+/binance_collector.exe
+
+# Raw data output
+/data/
