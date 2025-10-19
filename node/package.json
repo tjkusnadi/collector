@@ -1,0 +1,11 @@
+{
+  "name": "binance-collector-node",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.2"
+  }
+}
